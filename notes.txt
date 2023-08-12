@@ -1,0 +1,87 @@
+Here is an example which shows the kind of format I'm expecting to come through the socket. This is some python code which gradually builds up a string in the "file_str" variable, then prints it to the local socket. It starts with several control parameters:
+
+
+file_str = io.StringIO()
+file_str.write(EXCHANGE_ID)
+file_str.write(' ')
+file_str.write(BIDASK_ID_SOCKET)
+file_str.write(' ')
+file_str.write(CCYPAIRID)
+file_str.write(' ')
+file_str.write(str(is_snapshot))
+file_str.write(' ')
+file_str.write(tmstamp)
+
+
+EXCHANGE_ID is a local identifier in my own MySQL database for this exchange. For IB I think the number will be 8, but I will let you know.
+BIDASK_ID_SOCKET is a number which tells my receiving component whether the incoming data is orderbook lines or trades. For orderbook bid/asks, the number will be 1.
+CCYPAIRID is a local identifier for the stock. For example if I am looking at GBTC then I'll make up an integer in my own MySQL database to correspond to GBTC.
+"is_snapshot" -- this is a 0/1 indicator. I'm not sure if this is needed with IB. On some exchanges they will mostly stream updates to the orderbook, but then once in a while they will give you a snapshot of the whole thing. Let me know if it's needed for IB?
+tmstamp is just a timestamp in format YYYY-MM-DD HH:MM:SS.fff -- this can handle whatever fractional seconds IB gives, if it's down to either milliseconds or microseconds.
+
+
+Following these parameter lines, then a series of groups of 3 number are written:
+
+
+file_str.write(' ')
+file_str.write(bacode)
+file_str.write(' ')
+file_str.write(price)
+file_str.write(' ')
+file_str.write(quantity)
+
+
+where bacode is 1 for bid, and 2 for ask, and then price and quantity.
+
+If all that sounds right, then can you just send the data through always as
+3 fields:
+bid/ask indicator, price, size
+where:
+bid/ask indicator is 1 for b, 2 for ask
+price is just the price level
+size: for update or insert, just put the size they give. if it is a remove,
+then just put 0 for the size
+
+OK so here's what I need for trade data for any given stock. Building up the string inside of file_str as with bid/asks:
+
+
+file_str.write(EXCHANGE_ID)
+file_str.write(' ')
+file_str.write(TRADE_ID_SOCKET)
+file_str.write(' ')
+file_str.write(ccypairid)
+file_str.write(' ')
+
+
+EXCHANGE_ID and ccypairid are the same as with bid/asks. TRADE_ID_SOCKET is similar to BIDASK_ID_SOCKET from bid/asks. The value of TRADE_ID_SOCKET is 2.
+
+
+Then for each trade I write out data like:
+
+
+file_str.write(price)
+file_str.write(' ')
+file_str.write(size)
+file_str.write(' ')
+file_str.write(buysell_indic)
+
+
+where buysell_indic is a 1 if the trade was a buy, and 2 if it was a sell.
+
+
+One note on timestamps: I want to retain 2 timestamps for each trade. Probably IB sends through a timestamp for each trade for when the trade occured on the exchange. It would be great to send this through the local socket in the usual format YYYY-MM-DD HH:MM:SS.fff.
+
+
+But I also want to keep the local timestamp for when the trade data was received. From a model/algo point of view, this is the really important info. Basically the idea is: based on when I received the data, can I make an indicator which gives me profit. So in addition to the timestamp received from the exchange, it would also be great to send through the local timestamp in the same format: YYYY-MM-DD HH:MM:SS.fff. However, the local timestamp should be sent just once, with the EXCHANGE_ID etc info sent at the very start.
+
+
+For the socket stuff: I prefer a local socket rather than websockets. I have run my framework on other exchanges with my own python script, I used the python socket library like this:
+
+
+sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+server_address = ("127.0.0.1", 3490)
+sock.connect(server_address)
+sock.sendall(str.encode(message))
+
+
+(where 3490 is just the local port I use to pass the data.) I'm hoping I can do something like this here as well. The reason why, is because my framework can run in 2 modes: 1) data collection 2) live trading. Would prefer to keep the same framework going. My main goal here is to get all the data coming in. When it comes time to pass the data off to the rest of my stuff, I can actually help with that.
