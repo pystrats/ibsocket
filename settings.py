@@ -304,7 +304,7 @@ class Settings(QWidget):
 
         self.setFixedWidth(self.width)
         # self.setMinimumWidth(500)
-        self.setFixedHeight(self.screenHeight*.75)
+        self.setFixedHeight(int(self.screenHeight*.75))
 
         # qtRectangle = self.frameGeometry()
         # centerPoint = QDesktopWidget().availableGeometry().center()
