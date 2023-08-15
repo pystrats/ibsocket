@@ -1,1 +1,1 @@
-{"connection": {"port": 4002, "clientId": 1}, "sockets": {"host": "127.000.000.001", "port": 3490}, "database": {"exchange_id": 8}, "data": {"only_rth": false}}
+{"connection": {"port": 4001, "clientId": 1}, "sockets": {"host": "127.000.000.001", "port": 3490}, "database": {"exchange_id": 8}, "data": {"only_rth": false}}

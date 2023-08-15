@@ -521,6 +521,7 @@ class Worker(QObject, Connection):
     transmit_order_status = pyqtSignal(int, int, float)
     transmit_commission = pyqtSignal(int, float)
     transmit_market_depth = pyqtSignal(int, int, int, int, float, float)
+    request_port_number = pyqtSignal()
 
     contractRequestOrigin  = 'unknown'
     sourcesByReqId = {}
@@ -528,14 +529,22 @@ class Worker(QObject, Connection):
 
     period = 'daily'
 
+    port = None
+
     def initiate(self):
         Connection.__init__(self, '127.0.0.1', 7497, 0)
         # super().connect(self.host, self.port, self.clientID)
         # time.sleep(1.5)
         # super().run()
 
+    def update_port_number(self, port):
+        self.port = port
+
+
     def run(self):
         if not self.connectionEstablished:
+            self.request_port_number.emit()
+            time.sleep(.5)
             super().connect(self.host, self.port, self.clientID)
             print("serverVersion: %s connectionTime: %s" % (self.serverVersion(),
                                                           self.twsConnectionTime()))
@@ -809,6 +818,8 @@ class TableWidget(QWidget):
     data_to_explorer = pyqtSignal(object, object, object)
     transmit_order = pyqtSignal(int, object, object)
     closeApp = pyqtSignal()
+    transmit_port_number = pyqtSignal(int)
+
 
     def __init__(self, parent):
         super(QWidget, self).__init__(parent)
@@ -2298,6 +2309,8 @@ class TableWidget(QWidget):
         self.socket.sendall(bio.getvalue())
 
 
+    def transmit_port_numner_to_worker(self):
+        self.transmit_port_number.emit(self.settings['connection']['port'])
 
     @pyqtSlot()
     def establish_connection(self):
@@ -2331,6 +2344,9 @@ class TableWidget(QWidget):
         self.worker.transmit_order_status.connect(self.order_status_update, Qt.DirectConnection)
         self.worker.transmit_commission.connect(self.commission_update, Qt.DirectConnection)
         self.worker.transmit_valid_id.connect(self.receive_valid_id, Qt.DirectConnection)
+        self.worker.request_port_number.connect(self.transmit_port_numner_to_worker, Qt.DirectConnection)
+        self.transmit_port_number.connect(self.worker.update_port_number, Qt.DirectConnection)
+        self.transmit_port_numner_to_worker()
 
         self.worker.transmit_market_depth.connect(self.market_depth_received, Qt.DirectConnection)
 

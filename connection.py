@@ -11,7 +11,7 @@ class Connection(EWrapper, EClient):
         # EWrapper.__init__(self)
         EClient.__init__(self, self)
 
-        self.port = 4002
+        self.port = port
         self.reg_only = True
         self.host = '127.0.0.1'
         self.clientID = 1
